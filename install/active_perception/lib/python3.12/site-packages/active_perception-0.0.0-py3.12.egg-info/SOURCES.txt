@@ -9,6 +9,7 @@ setup.py
 ../../build/active_perception/active_perception.egg-info/top_level.txt
 ../../build/active_perception/active_perception.egg-info/zip-safe
 active_perception/__init__.py
+active_perception/heuristic_scorer.py
 active_perception/mock_camera_node.py
 active_perception/mock_detector_node.py
 resource/active_perception
