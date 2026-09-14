@@ -24,6 +24,8 @@ setup(
     },
     entry_points={
         'console_scripts': [
+            'mock_camera = active_perception.mock_camera_node:main',
+            'mock_detector = active_perception.mock_detector_node:main',
         ],
     },
 )
