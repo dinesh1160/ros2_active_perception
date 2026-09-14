@@ -1,0 +1,3 @@
+float32 sharpness_score
+float32 illumination_score
+float32 bbox_area_ratio

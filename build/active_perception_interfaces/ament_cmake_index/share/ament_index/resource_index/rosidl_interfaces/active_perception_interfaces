@@ -1,0 +1,4 @@
+msg/HeuristicMetrics.idl
+msg/HeuristicMetrics.msg
+srv/AnalyzeQuality.idl
+srv/AnalyzeQuality.srv

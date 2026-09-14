@@ -1,0 +1,46 @@
+{
+  "type_description_msg": {
+    "type_description": {
+      "type_name": "active_perception_interfaces/srv/AnalyzeQuality_Response",
+      "fields": [
+        {
+          "name": "occlusion_score",
+          "type": {
+            "type_id": 10,
+            "capacity": 0,
+            "string_capacity": 0,
+            "nested_type_name": ""
+          },
+          "default_value": ""
+        },
+        {
+          "name": "framing_score",
+          "type": {
+            "type_id": 10,
+            "capacity": 0,
+            "string_capacity": 0,
+            "nested_type_name": ""
+          },
+          "default_value": ""
+        },
+        {
+          "name": "reasoning",
+          "type": {
+            "type_id": 17,
+            "capacity": 0,
+            "string_capacity": 0,
+            "nested_type_name": ""
+          },
+          "default_value": ""
+        }
+      ]
+    },
+    "referenced_type_descriptions": []
+  },
+  "type_hashes": [
+    {
+      "type_name": "active_perception_interfaces/srv/AnalyzeQuality_Response",
+      "hash_string": "RIHS01_77dd6ff62f46227d2d3b6cdc48a1f8544129f68c53f0aacd46cf2aa301bb1552"
+    }
+  ]
+}

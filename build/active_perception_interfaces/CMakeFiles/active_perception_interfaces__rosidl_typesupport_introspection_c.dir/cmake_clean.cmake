@@ -1,0 +1,17 @@
+file(REMOVE_RECURSE
+  "CMakeFiles/active_perception_interfaces__rosidl_typesupport_introspection_c.dir/rosidl_typesupport_introspection_c/active_perception_interfaces/msg/detail/heuristic_metrics__type_support.c.o"
+  "CMakeFiles/active_perception_interfaces__rosidl_typesupport_introspection_c.dir/rosidl_typesupport_introspection_c/active_perception_interfaces/msg/detail/heuristic_metrics__type_support.c.o.d"
+  "CMakeFiles/active_perception_interfaces__rosidl_typesupport_introspection_c.dir/rosidl_typesupport_introspection_c/active_perception_interfaces/srv/detail/analyze_quality__type_support.c.o"
+  "CMakeFiles/active_perception_interfaces__rosidl_typesupport_introspection_c.dir/rosidl_typesupport_introspection_c/active_perception_interfaces/srv/detail/analyze_quality__type_support.c.o.d"
+  "libactive_perception_interfaces__rosidl_typesupport_introspection_c.pdb"
+  "libactive_perception_interfaces__rosidl_typesupport_introspection_c.so"
+  "rosidl_typesupport_introspection_c/active_perception_interfaces/msg/detail/heuristic_metrics__rosidl_typesupport_introspection_c.h"
+  "rosidl_typesupport_introspection_c/active_perception_interfaces/msg/detail/heuristic_metrics__type_support.c"
+  "rosidl_typesupport_introspection_c/active_perception_interfaces/srv/detail/analyze_quality__rosidl_typesupport_introspection_c.h"
+  "rosidl_typesupport_introspection_c/active_perception_interfaces/srv/detail/analyze_quality__type_support.c"
+)
+
+# Per-language clean rules from dependency scanning.
+foreach(lang C)
+  include(CMakeFiles/active_perception_interfaces__rosidl_typesupport_introspection_c.dir/cmake_clean_${lang}.cmake OPTIONAL)
+endforeach()

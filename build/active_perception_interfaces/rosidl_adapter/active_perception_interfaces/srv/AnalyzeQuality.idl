@@ -1,0 +1,20 @@
+// generated from rosidl_adapter/resource/srv.idl.em
+// with input from active_perception_interfaces/srv/AnalyzeQuality.srv
+// generated code does not contain a copyright notice
+
+#include "sensor_msgs/msg/Image.idl"
+
+module active_perception_interfaces {
+  module srv {
+    struct AnalyzeQuality_Request {
+      sensor_msgs::msg::Image image;
+    };
+    struct AnalyzeQuality_Response {
+      float occlusion_score;
+
+      float framing_score;
+
+      string reasoning;
+    };
+  };
+};
