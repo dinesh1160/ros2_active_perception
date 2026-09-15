@@ -28,6 +28,8 @@ setup(
             'mock_detector = active_perception.mock_detector_node:main',
             'heuristic_scorer = active_perception.heuristic_scorer:main',
             'vlm_bridge = active_perception.vlm_bridge_node:main',
+            'coordinator = active_perception.coordinator_node:main',
+            'yolo_detector = active_perception.yolo_detector_node:main',
         ],
     },
 )

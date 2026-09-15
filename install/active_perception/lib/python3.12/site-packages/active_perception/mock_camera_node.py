@@ -43,11 +43,11 @@ class MockCameraNode(Node):
 
         self.get_logger().info(
             f"Mock Camera ready with {len(self.image_paths)} frames. "
-            "Call /mock/next_frame to publish."
+            "Streaming continuously at 2 FPS."
         )
 
-        # Publish the first frame right away
-        self.publish_current_frame()
+        # Simulate a real camera by publishing the current frame continuously (every 0.5 seconds)
+        self.timer = self.create_timer(0.5, self.publish_current_frame)
 
     def _create_dummy_dataset(self):
         """Generates 3 basic images so the system works out of the box."""

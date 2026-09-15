@@ -54,9 +54,9 @@ class VlmBridgeNode(Node):
                 "3. reasoning: Provide a 1-sentence explanation of your scores."
             )
 
-            # 3. Call Gemini 1.5 Flash (Fastest model for robotics loops)
+            # 3. Call Gemini 3.6     Flash (Fastest model for robotics loops)
             vlm_response = self.client.models.generate_content(
-                model='gemini-1.5-flash',
+                model='gemini-3.6-flash',
                 contents=[
                     types.Part.from_bytes(data=image_bytes, mime_type='image/jpeg'),
                     prompt
