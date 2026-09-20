@@ -1,7 +1,0 @@
-[console_scripts]
-coordinator = active_perception.coordinator_node:main
-heuristic_scorer = active_perception.heuristic_scorer:main
-interactive_trigger = active_perception.interactive_trigger:main
-live_camera = active_perception.live_camera_node:main
-vlm_bridge = active_perception.vlm_bridge_node:main
-yolo_detector = active_perception.yolo_detector_node:main

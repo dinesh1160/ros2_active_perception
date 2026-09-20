@@ -1,7 +1,0 @@
-{
-  "package_name": "active_perception_interfaces",
-  "non_idl_tuples": [
-    "/home/bluegoose/active_perception_ws/src/active_perception_interfaces:msg/HeuristicMetrics.msg",
-    "/home/bluegoose/active_perception_ws/src/active_perception_interfaces:srv/AnalyzeQuality.srv"
-  ]
-}
