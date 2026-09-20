@@ -2,124 +2,143 @@ import rclpy
 from rclpy.node import Node
 from sensor_msgs.msg import Image
 from std_srvs.srv import Trigger
-
 from active_perception_interfaces.msg import HeuristicMetrics
 from active_perception_interfaces.srv import AnalyzeQuality
-
 
 class CoordinatorNode(Node):
     def __init__(self):
         super().__init__('coordinator_node')
 
-        # State & Configuration
-        self.state = 'WAITING_FOR_FRAME'
-        self.retry_count = 0
-        self.MAX_RETRIES = 5
+        self.state = 'IDLE'
+        self.history = []
+        self.eval_counter = 0
         self.latest_image = None
+        self.current_frame_name = ""
 
-        # Evaluation Thresholds
-        self.MIN_SHARPNESS = 5.0        # Set low for synthetic dummy images
-        self.MIN_ILLUMINATION = 30.0    # Set low for synthetic dummy images
-        self.MIN_OCCLUSION = 80.0
-        self.MIN_FRAMING = 80.0
+        self.MIN_SHARPNESS = 5.0        
+        self.MIN_ILLUMINATION = 30.0    
 
-        # Subscriptions
-        self.image_sub = self.create_subscription(
-            Image, '/camera/image_raw', self.image_callback, 10
-        )
-        self.metrics_sub = self.create_subscription(
-            HeuristicMetrics, '/metrics/heuristics', self.metrics_callback, 10
-        )
+        # 1. Listen to the continuous webcam stream quietly in the background
+        self.create_subscription(Image, '/camera/image_raw', self.image_callback, 10)
+        
+        # 2. The Gatekeeper: Publishes ONE frame only when triggered
+        self.snapshot_pub = self.create_publisher(Image, '/snapshot/image', 10)
+        
+        # 3. Listen for the processed metrics returning from the snapshot pipeline
+        self.create_subscription(HeuristicMetrics, '/snapshot/metrics', self.metrics_callback, 10)
 
-        # Service Clients
+        # Services
         self.vlm_client = self.create_client(AnalyzeQuality, '/analyze_view_quality')
-        self.move_client = self.create_client(Trigger, '/mock/next_frame')
+        self.create_service(Trigger, '/evaluate_now', self.handle_evaluate_now)
+        self.create_service(Trigger, '/finish_benchmark', self.handle_finish)
 
-        self.get_logger().info("Coordinator Brain is online. Waiting for telemetry...")
+        self.get_logger().info("Coordinator ready. Press ENTER in the trigger terminal to snap a frame.")
 
     def image_callback(self, msg: Image):
-        # Cache the latest image so we can send it to the VLM when requested
         self.latest_image = msg
 
-    def metrics_callback(self, msg: HeuristicMetrics):
-        # Only process if we are waiting for a new evaluation
-        if self.state != 'WAITING_FOR_FRAME':
-            return
-
-        self.state = 'PROCESSING'
-        self.get_logger().info(f"--- [Attempt {self.retry_count + 1}] Evaluating Frame ---")
-
-        # 1. Evaluate Heuristics (Fast/Cheap)
-        if msg.sharpness_score < self.MIN_SHARPNESS:
-            self.trigger_reposition(f"Heuristics Failed: Too blurry ({msg.sharpness_score:.1f} < {self.MIN_SHARPNESS})")
-            return
-        
-        if msg.illumination_score < self.MIN_ILLUMINATION:
-            self.trigger_reposition(f"Heuristics Failed: Too dark ({msg.illumination_score:.1f} < {self.MIN_ILLUMINATION})")
-            return
-
-        self.get_logger().info("Heuristics Passed. Querying VLM for semantic occlusion...")
-        self.query_vlm()
-
-    def query_vlm(self):
-        if not self.vlm_client.wait_for_service(timeout_sec=3.0):
-            self.get_logger().error("VLM Service not available! Aborting.")
-            return
+    def handle_evaluate_now(self, request, response):
+        if self.state != 'IDLE':
+            response.success = False
+            return response
 
         if self.latest_image is None:
-            self.get_logger().error("No image available to send to VLM!")
+            response.success = False
+            self.get_logger().error("No camera feed detected.")
+            return response
+
+        self.state = 'WAITING_FOR_METRICS'
+        self.eval_counter += 1
+        self.current_frame_name = f"Angle_{self.eval_counter}"
+        
+        self.get_logger().info(f"\n📸 SNAPSHOT {self.current_frame_name}: Sent to YOLO and Heuristics...")
+        
+        # Publish the single frame to wake up the rest of the pipeline
+        self.snapshot_pub.publish(self.latest_image)
+        
+        response.success = True
+        return response
+
+    def metrics_callback(self, msg: HeuristicMetrics):
+        # Only process metrics if we just requested a snapshot
+        if self.state != 'WAITING_FOR_METRICS':
+            return
+
+        self.state = 'PROCESSING_VLM'
+        
+        current_eval = {
+            'frame': self.current_frame_name,
+            'sharpness': msg.sharpness_score,
+            'illumination': msg.illumination_score,
+            'vlm_occlusion': 0.0,
+            'vlm_framing': 0.0,
+            'total_score': 0.0,
+            'reason': ''
+        }
+
+        self.get_logger().info(f"Heuristics -> Sharpness: {msg.sharpness_score:.1f}, Illum: {msg.illumination_score:.1f}")
+
+        # 1. Fast Heuristics Check
+        if current_eval['sharpness'] < self.MIN_SHARPNESS or current_eval['illumination'] < self.MIN_ILLUMINATION:
+            current_eval['reason'] = "Failed Heuristics (Blurry or Dark)"
+            self.history.append(current_eval)
+            self.get_logger().warn(f"Discarded: {current_eval['reason']}")
+            self.state = 'IDLE'
+            return
+
+        # 2. VLM Check (Async)
+        self.get_logger().info("Heuristics passed! Querying VLM...")
+        if not self.vlm_client.wait_for_service(timeout_sec=2.0):
+            self.get_logger().error("VLM offline.")
+            self.state = 'IDLE'
             return
 
         req = AnalyzeQuality.Request()
         req.image = self.latest_image
-        
-        # Async call prevents the node from locking up while waiting for the internet
         future = self.vlm_client.call_async(req)
-        future.add_done_callback(self.vlm_response_callback)
-        self.state = 'WAITING_FOR_VLM'
+        future.add_done_callback(lambda fut: self.vlm_response_callback(fut, current_eval))
 
-    def vlm_response_callback(self, future):
+    def vlm_response_callback(self, future, current_eval):
         try:
             res = future.result()
+            current_eval['vlm_occlusion'] = res.occlusion_score
+            current_eval['vlm_framing'] = res.framing_score
+            current_eval['reason'] = res.reasoning
+            current_eval['total_score'] = (res.occlusion_score + res.framing_score) / 2.0
             
-            # 2. Evaluate VLM (Semantic/Expensive)
-            if res.occlusion_score < self.MIN_OCCLUSION or res.framing_score < self.MIN_FRAMING:
-                reason = f"VLM Failed [O:{res.occlusion_score} F:{res.framing_score}]: {res.reasoning}"
-                self.trigger_reposition(reason)
-            else:
-                self.get_logger().info(f"SUCCESS! Golden view found. VLM reasoning: {res.reasoning}")
-                self.state = 'DONE'
+            self.history.append(current_eval)
+            self.get_logger().info(f"VLM Score -> Occ: {res.occlusion_score}, Frame: {res.framing_score} ({res.reasoning})")
 
         except Exception as e:
-            self.get_logger().error(f"Service call failed: {e}")
-            self.trigger_reposition("VLM Service Call Failed.")
-
-    def trigger_reposition(self, reason: str):
-        self.get_logger().warn(f"Action triggered: Requesting Next-Best-View. Reason: {reason}")
+            self.get_logger().error(f"VLM Call Failed: {e}")
         
-        if self.retry_count >= self.MAX_RETRIES:
-            self.get_logger().error("Max retries reached. Hysteresis triggered. Accepting suboptimal frame.")
-            self.state = 'DONE'
-            return
+        self.state = 'IDLE'
+        self.get_logger().info("✅ Done. Ready for next angle.")
 
-        self.retry_count += 1
+    def handle_finish(self, request, response):
+        if not self.history:
+            response.success = False
+            return response
+
+        self.get_logger().info("\n================ BENCHMARK COMPLETE ================\n")
+        best_frame = None
+        best_score = -1.0
         
-        # Call the mock navigation to advance the dataset
-        if self.move_client.wait_for_service(timeout_sec=2.0):
-            future = self.move_client.call_async(Trigger.Request())
-            future.add_done_callback(self.move_response_callback)
-        else:
-            self.get_logger().error("Mock Move Service not available!")
+        for item in self.history:
+            self.get_logger().info(
+                f"[{item['frame']}] Score: {item['total_score']:.1f} | "
+                f"Heuristics: [Blur:{item['sharpness']:.1f}, Light:{item['illumination']:.1f}] | "
+                f"VLM: [Occ:{item['vlm_occlusion']}, Frame:{item['vlm_framing']}] -> {item['reason']}"
+            )
+            if item['total_score'] > best_score:
+                best_score = item['total_score']
+                best_frame = item['frame']
+                
+        self.get_logger().info(f"\n🏆 BEST ANGLE: {best_frame} (Score: {best_score:.1f})\n")
+        self.get_logger().info("====================================================\n")
 
-    def move_response_callback(self, future):
-        res = future.result()
-        if res.success:
-            self.get_logger().info("Rover moved successfully. Awaiting new telemetry...")
-            self.state = 'WAITING_FOR_FRAME'
-        else:
-            self.get_logger().error(f"Move failed/End of data: {res.message}")
-            self.state = 'DONE'
-
+        response.success = True
+        return response
 
 def main(args=None):
     rclpy.init(args=args)
@@ -131,7 +150,6 @@ def main(args=None):
     finally:
         node.destroy_node()
         rclpy.shutdown()
-
 
 if __name__ == '__main__':
     main()

@@ -17,13 +17,14 @@ class YoloDetectorNode(Node):
         # COCO dataset class ID for 'bottle' is 39
         self.TARGET_CLASS_ID = 75
 
+        # Now listens to the snapshot topic instead of the live feed
         self.image_sub = self.create_subscription(
-            Image, '/camera/image_raw', self.image_callback, 10
+            Image, '/snapshot/image', self.image_callback, 10
         )
+        # Publishes to a snapshot bounding box topic
         self.detection_pub = self.create_publisher(
-            Detection2DArray, '/detections/bounding_boxes', 10
+            Detection2DArray, '/snapshot/bounding_boxes', 10
         )
-
         self.get_logger().info("YOLOv8 Detector ready. Waiting for images...")
 
     def image_msg_to_cv2(self, msg: Image) -> np.ndarray:

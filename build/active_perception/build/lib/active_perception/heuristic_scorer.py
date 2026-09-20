@@ -15,14 +15,14 @@ class HeuristicScorerNode(Node):
     def __init__(self):
         super().__init__('heuristic_scorer_node')
 
-        # Synchronize the image and bounding box topics based on exact timestamps
-        self.image_sub = message_filters.Subscriber(self, Image, '/camera/image_raw')
-        self.bbox_sub = message_filters.Subscriber(self, Detection2DArray, '/detections/bounding_boxes')
+       # Synchronize the SNAPSHOT image and bounding box topics
+        self.image_sub = message_filters.Subscriber(self, Image, '/snapshot/image')
+        self.bbox_sub = message_filters.Subscriber(self, Detection2DArray, '/snapshot/bounding_boxes')
         self.ts = message_filters.TimeSynchronizer([self.image_sub, self.bbox_sub], queue_size=10)
         self.ts.registerCallback(self.sync_callback)
 
-        self.metrics_pub = self.create_publisher(HeuristicMetrics, '/metrics/heuristics', 10)
-        self.get_logger().info("Heuristic Scorer ready. Waiting for synced frames and detections...")
+        # Publish to the snapshot metrics topic
+        self.metrics_pub = self.create_publisher(HeuristicMetrics, '/snapshot/metrics', 10)
 
     def image_msg_to_cv2(self, msg: Image) -> np.ndarray:
         """Manually converts ROS Image to OpenCV format, bypassing cv_bridge bugs."""

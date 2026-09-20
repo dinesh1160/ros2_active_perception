@@ -1,0 +1,33 @@
+# ROS 2 / colcon generated files
+/build/
+/install/
+/log/
+
+# ROS tooling and runtime files
+.ros/
+*.rosbag
+*.db3
+
+# Python-generated files
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+
+# Local environments
+.venv/
+venv/
+env/
+ENV/
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db

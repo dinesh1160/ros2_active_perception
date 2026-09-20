@@ -11,8 +11,8 @@ setup.py
 active_perception/__init__.py
 active_perception/coordinator_node.py
 active_perception/heuristic_scorer.py
-active_perception/mock_camera_node.py
-active_perception/mock_detector_node.py
+active_perception/interactive_trigger.py
+active_perception/live_camera_node.py
 active_perception/vlm_bridge_node.py
 active_perception/yolo_detector_node.py
 resource/active_perception

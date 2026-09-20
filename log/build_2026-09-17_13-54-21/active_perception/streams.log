@@ -1,0 +1,35 @@
+[1.468s] Invoking command in '/home/bluegoose/active_perception_ws/src/active_perception': AMENT_PREFIX_PATH=/home/bluegoose/active_perception_ws/install/active_perception_interfaces:${AMENT_PREFIX_PATH} CMAKE_PREFIX_PATH=/home/bluegoose/active_perception_ws/install/active_perception_interfaces:${CMAKE_PREFIX_PATH} DEBUGINFOD_URLS=https://debuginfod.ubuntu.com LD_LIBRARY_PATH=/home/bluegoose/active_perception_ws/install/active_perception_interfaces/lib:${LD_LIBRARY_PATH} PYTHONPATH=/home/bluegoose/active_perception_ws/build/active_perception/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/bluegoose/active_perception_ws/install/active_perception/lib/python3.12/site-packages:/home/bluegoose/active_perception_ws/install/active_perception_interfaces/lib/python3.12/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated -W ignore:easy_install command is deprecated setup.py egg_info --egg-base ../../build/active_perception build --build-base /home/bluegoose/active_perception_ws/build/active_perception/build install --record /home/bluegoose/active_perception_ws/build/active_perception/install.log --install-scripts $base/lib/active_perception --single-version-externally-managed install_data
+[2.002s] running egg_info
+[2.044s] writing ../../build/active_perception/active_perception.egg-info/PKG-INFO
+[2.045s] writing dependency_links to ../../build/active_perception/active_perception.egg-info/dependency_links.txt
+[2.045s] writing entry points to ../../build/active_perception/active_perception.egg-info/entry_points.txt
+[2.045s] writing requirements to ../../build/active_perception/active_perception.egg-info/requires.txt
+[2.046s] writing top-level names to ../../build/active_perception/active_perception.egg-info/top_level.txt
+[2.132s] reading manifest file '../../build/active_perception/active_perception.egg-info/SOURCES.txt'
+[2.134s] writing manifest file '../../build/active_perception/active_perception.egg-info/SOURCES.txt'
+[2.134s] running build
+[2.135s] running build_py
+[2.135s] copying active_perception/vlm_bridge_node.py -> /home/bluegoose/active_perception_ws/build/active_perception/build/lib/active_perception
+[2.135s] copying active_perception/coordinator_node.py -> /home/bluegoose/active_perception_ws/build/active_perception/build/lib/active_perception
+[2.135s] copying active_perception/__init__.py -> /home/bluegoose/active_perception_ws/build/active_perception/build/lib/active_perception
+[2.136s] copying active_perception/interactive_trigger.py -> /home/bluegoose/active_perception_ws/build/active_perception/build/lib/active_perception
+[2.136s] copying active_perception/heuristic_scorer.py -> /home/bluegoose/active_perception_ws/build/active_perception/build/lib/active_perception
+[2.136s] copying active_perception/yolo_detector_node.py -> /home/bluegoose/active_perception_ws/build/active_perception/build/lib/active_perception
+[2.136s] copying active_perception/live_camera_node.py -> /home/bluegoose/active_perception_ws/build/active_perception/build/lib/active_perception
+[2.137s] running install
+[2.145s] running install_lib
+[2.187s] running install_data
+[2.188s] copying resource/active_perception -> /home/bluegoose/active_perception_ws/install/active_perception/share/ament_index/resource_index/packages
+[2.188s] copying package.xml -> /home/bluegoose/active_perception_ws/install/active_perception/share/active_perception
+[2.188s] running install_egg_info
+[2.229s] removing '/home/bluegoose/active_perception_ws/install/active_perception/lib/python3.12/site-packages/active_perception-0.0.0-py3.12.egg-info' (and everything under it)
+[2.229s] Copying ../../build/active_perception/active_perception.egg-info to /home/bluegoose/active_perception_ws/install/active_perception/lib/python3.12/site-packages/active_perception-0.0.0-py3.12.egg-info
+[2.231s] running install_scripts
+[2.456s] Installing coordinator script to /home/bluegoose/active_perception_ws/install/active_perception/lib/active_perception
+[2.457s] Installing heuristic_scorer script to /home/bluegoose/active_perception_ws/install/active_perception/lib/active_perception
+[2.457s] Installing interactive_trigger script to /home/bluegoose/active_perception_ws/install/active_perception/lib/active_perception
+[2.457s] Installing live_camera script to /home/bluegoose/active_perception_ws/install/active_perception/lib/active_perception
+[2.458s] Installing vlm_bridge script to /home/bluegoose/active_perception_ws/install/active_perception/lib/active_perception
+[2.458s] Installing yolo_detector script to /home/bluegoose/active_perception_ws/install/active_perception/lib/active_perception
+[2.458s] writing list of installed files to '/home/bluegoose/active_perception_ws/build/active_perception/install.log'
+[2.498s] Invoked command in '/home/bluegoose/active_perception_ws/src/active_perception' returned '0': AMENT_PREFIX_PATH=/home/bluegoose/active_perception_ws/install/active_perception_interfaces:${AMENT_PREFIX_PATH} CMAKE_PREFIX_PATH=/home/bluegoose/active_perception_ws/install/active_perception_interfaces:${CMAKE_PREFIX_PATH} DEBUGINFOD_URLS=https://debuginfod.ubuntu.com LD_LIBRARY_PATH=/home/bluegoose/active_perception_ws/install/active_perception_interfaces/lib:${LD_LIBRARY_PATH} PYTHONPATH=/home/bluegoose/active_perception_ws/build/active_perception/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/bluegoose/active_perception_ws/install/active_perception/lib/python3.12/site-packages:/home/bluegoose/active_perception_ws/install/active_perception_interfaces/lib/python3.12/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated -W ignore:easy_install command is deprecated setup.py egg_info --egg-base ../../build/active_perception build --build-base /home/bluegoose/active_perception_ws/build/active_perception/build install --record /home/bluegoose/active_perception_ws/build/active_perception/install.log --install-scripts $base/lib/active_perception --single-version-externally-managed install_data
