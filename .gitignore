@@ -37,3 +37,6 @@ Thumbs.db
 
 # Per-run snapshots and scores
 /runs/
+
+# Separate clone of another branch (own colcon workspace)
+/branch_new-session-9swvjl/
