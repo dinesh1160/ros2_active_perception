@@ -33,6 +33,7 @@ setup(
             'vlm_bridge = active_perception.vlm_bridge_node:main',
             'coordinator = active_perception.coordinator_node:main',
             'interactive_trigger = active_perception.interactive_trigger:main',
+            'motion = active_perception.motion_node:main',
         ],
     },
 )

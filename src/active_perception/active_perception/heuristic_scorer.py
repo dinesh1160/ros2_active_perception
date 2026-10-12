@@ -86,6 +86,10 @@ class HeuristicScorerNode(Node):
         metrics_msg.sharpness_score = sharpness_score
         metrics_msg.illumination_score = illumination_score
         metrics_msg.bbox_area_ratio = area_ratio
+        metrics_msg.bbox_x_min = float(x_min)
+        metrics_msg.bbox_y_min = float(y_min)
+        metrics_msg.bbox_x_max = float(x_max)
+        metrics_msg.bbox_y_max = float(y_max)
 
         self.metrics_pub.publish(metrics_msg)
 

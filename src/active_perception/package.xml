@@ -9,7 +9,10 @@
   <license>TODO: License declaration</license>
 
   <depend>rclpy</depend>
+  <depend>rcl_interfaces</depend>
   <depend>sensor_msgs</depend>
+  <depend>geometry_msgs</depend>
+  <depend>nav_msgs</depend>
   <depend>vision_msgs</depend>
   <depend>std_srvs</depend>
   <depend>active_perception_interfaces</depend>

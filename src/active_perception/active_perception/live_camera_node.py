@@ -2,7 +2,7 @@ import rclpy
 from rclpy.executors import ExternalShutdownException
 from rclpy.node import Node
 from rclpy.qos import qos_profile_sensor_data
-from sensor_msgs.msg import Image
+from sensor_msgs.msg import CompressedImage, Image
 import cv2
 
 
@@ -12,7 +12,7 @@ class LiveCameraNode(Node):
     def __init__(self):
         super().__init__('live_camera_node')
 
-        self.declare_parameter('camera_topic', '/pi_camera/image_raw')
+        self.declare_parameter('camera_topic', '/pi_camera/image_raw/compressed')
         self.declare_parameter('device_index', 0)
         self.declare_parameter('fps', 10.0)
         topic = self.get_parameter('camera_topic').value
@@ -22,7 +22,10 @@ class LiveCameraNode(Node):
         if not self.cap.isOpened():
             raise RuntimeError(f"Cannot open webcam {device}. Check connection or permissions.")
 
-        self.image_pub = self.create_publisher(Image, topic, qos_profile_sensor_data)
+        # Mimic the robot: JPEG CompressedImage on '.../compressed' topics, raw bgr8 otherwise
+        self.compressed = topic.endswith('/compressed')
+        msg_type = CompressedImage if self.compressed else Image
+        self.image_pub = self.create_publisher(msg_type, topic, qos_profile_sensor_data)
 
         self.timer = self.create_timer(1.0 / self.get_parameter('fps').value, self.publish_frame)
         self.get_logger().info(f"Live Camera Node streaming on {topic}...")
@@ -31,6 +34,15 @@ class LiveCameraNode(Node):
         ret, frame = self.cap.read()
         if not ret:
             self.get_logger().warn("Failed to grab frame from webcam.", throttle_duration_sec=5.0)
+            return
+
+        if self.compressed:
+            msg = CompressedImage()
+            msg.header.stamp = self.get_clock().now().to_msg()
+            msg.header.frame_id = "webcam_frame"
+            msg.format = 'jpeg'
+            msg.data = cv2.imencode('.jpg', frame)[1].tobytes()
+            self.image_pub.publish(msg)
             return
 
         # Bypass cv_bridge to avoid Python 3.12 compatibility bugs

@@ -1,5 +1,6 @@
 import os
 import json
+import hashlib
 import cv2
 
 import rclpy
@@ -77,7 +78,9 @@ class VlmBridgeNode(Node):
             "Waiting for service calls on /analyze_view_quality.")
 
     def analyze_callback(self, request, response):
-        self.get_logger().info("Received image for VLM analysis. Processing...")
+        # Same hash the coordinator records in results.json -> proves it is the same frame
+        frame_hash = hashlib.md5(bytes(request.image.data)).hexdigest()[:12]
+        self.get_logger().info(f"Received image for VLM analysis (frame hash {frame_hash}). Processing...")
         target = request.target_object or 'object'
 
         try:

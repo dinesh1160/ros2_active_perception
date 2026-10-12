@@ -34,3 +34,6 @@ Thumbs.db
 
 # Secrets
 .env
+
+# Per-run snapshots and scores
+/runs/
