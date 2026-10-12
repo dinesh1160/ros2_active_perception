@@ -8,13 +8,14 @@ endif()
 # Find dependencies needed for building and generating messages
 find_package(ament_cmake REQUIRED)
 find_package(rosidl_default_generators REQUIRED)
+find_package(std_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
 
 # Instruct the generator to compile our specific files
 rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/HeuristicMetrics.msg"
   "srv/AnalyzeQuality.srv"
-  DEPENDENCIES sensor_msgs
+  DEPENDENCIES std_msgs sensor_msgs
 )
 
 ament_package()

@@ -4,16 +4,22 @@
 <package format="3">
   <name>active_perception</name>
   <version>0.0.0</version>
-  <description>TODO: Package description</description>
+  <description>Active perception: pick the best camera angle with YOLO, heuristics and a VLM</description>
   <maintainer email="dinesharunachalam116@gmail.com">bluegoose</maintainer>
   <license>TODO: License declaration</license>
 
   <depend>rclpy</depend>
   <depend>sensor_msgs</depend>
   <depend>vision_msgs</depend>
-  <depend>cv_bridge</depend>
   <depend>std_srvs</depend>
   <depend>active_perception_interfaces</depend>
+
+  <exec_depend>message_filters</exec_depend>
+  <exec_depend>python3-opencv</exec_depend>
+  <exec_depend>python3-numpy</exec_depend>
+  <exec_depend>launch</exec_depend>
+  <exec_depend>launch_ros</exec_depend>
+  <!-- pip-only (installed in .venv): ultralytics, google-genai -->
 
   <test_depend>ament_copyright</test_depend>
   <test_depend>ament_flake8</test_depend>

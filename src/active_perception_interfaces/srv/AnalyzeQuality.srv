@@ -1,5 +1,7 @@
 sensor_msgs/Image image
+string target_object
 ---
+bool success
 float32 occlusion_score
 float32 framing_score
 string reasoning

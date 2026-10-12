@@ -1,21 +1,22 @@
 import rclpy
+from rclpy.executors import ExternalShutdownException
 from rclpy.node import Node
 from sensor_msgs.msg import Image
 from vision_msgs.msg import Detection2DArray
 import message_filters
 
 import cv2
-import numpy as np
 
-# Import the custom message you built in Phase 1
 from active_perception_interfaces.msg import HeuristicMetrics
+from active_perception.image_utils import image_msg_to_bgr
 
 
 class HeuristicScorerNode(Node):
     def __init__(self):
         super().__init__('heuristic_scorer_node')
 
-       # Synchronize the SNAPSHOT image and bounding box topics
+        # Synchronize the SNAPSHOT image and bounding box topics.
+        # YOLO copies the image header, so the stamps match exactly.
         self.image_sub = message_filters.Subscriber(self, Image, '/snapshot/image')
         self.bbox_sub = message_filters.Subscriber(self, Detection2DArray, '/snapshot/bounding_boxes')
         self.ts = message_filters.TimeSynchronizer([self.image_sub, self.bbox_sub], queue_size=10)
@@ -24,19 +25,25 @@ class HeuristicScorerNode(Node):
         # Publish to the snapshot metrics topic
         self.metrics_pub = self.create_publisher(HeuristicMetrics, '/snapshot/metrics', 10)
 
-    def image_msg_to_cv2(self, msg: Image) -> np.ndarray:
-        """Manually converts ROS Image to OpenCV format, bypassing cv_bridge bugs."""
-        img = np.frombuffer(msg.data, dtype=np.uint8)
-        img = img.reshape((msg.height, msg.width, 3))
-        return img
+        self.get_logger().info("Heuristic Scorer ready. Waiting for snapshots...")
+
+    def publish_no_target(self, image_msg: Image, reason: str):
+        """Always report back so the coordinator never waits forever."""
+        self.get_logger().warn(f"{reason} Skipping heuristics.")
+        metrics_msg = HeuristicMetrics()
+        metrics_msg.header = image_msg.header
+        metrics_msg.target_detected = False
+        self.metrics_pub.publish(metrics_msg)
 
     def sync_callback(self, image_msg: Image, detection_msg: Detection2DArray):
         if not detection_msg.detections:
-            self.get_logger().warn(f"No detections in frame {image_msg.header.frame_id}. Skipping heuristics.")
+            self.publish_no_target(image_msg, "No target detected in snapshot.")
             return
 
-        # Extract the first detection (our target object)
-        detection = detection_msg.detections[0]
+        # Highest-confidence detection is our target object
+        detection = max(
+            detection_msg.detections,
+            key=lambda d: d.results[0].hypothesis.score if d.results else 0.0)
         cx = detection.bbox.center.position.x
         cy = detection.bbox.center.position.y
         w = detection.bbox.size_x
@@ -51,16 +58,18 @@ class HeuristicScorerNode(Node):
 
         # Guard against invalid bounding boxes
         if x_max <= x_min or y_max <= y_min:
-            self.get_logger().error("Invalid bounding box dimensions. Skipping.")
+            self.publish_no_target(image_msg, "Invalid bounding box dimensions.")
             return
 
-        cv_image = self.image_msg_to_cv2(image_msg)
+        try:
+            cv_image = image_msg_to_bgr(image_msg)
+        except ValueError as e:
+            self.publish_no_target(image_msg, f"Cannot convert snapshot: {e}.")
+            return
         roi = cv_image[y_min:y_max, x_min:x_max]
 
-        # 1. Calculate Coverage Area Ratio
-        bbox_area = w * h
-        total_area = img_w * img_h
-        area_ratio = float(bbox_area / total_area)
+        # 1. Calculate Coverage Area Ratio (of the visible, clamped box)
+        area_ratio = float((x_max - x_min) * (y_max - y_min) / (img_w * img_h))
 
         # 2. Calculate Illumination (Mean of HSV 'Value' channel on ROI)
         hsv_roi = cv2.cvtColor(roi, cv2.COLOR_BGR2HSV)
@@ -72,6 +81,8 @@ class HeuristicScorerNode(Node):
 
         # Publish the results
         metrics_msg = HeuristicMetrics()
+        metrics_msg.header = image_msg.header
+        metrics_msg.target_detected = True
         metrics_msg.sharpness_score = sharpness_score
         metrics_msg.illumination_score = illumination_score
         metrics_msg.bbox_area_ratio = area_ratio
@@ -79,8 +90,8 @@ class HeuristicScorerNode(Node):
         self.metrics_pub.publish(metrics_msg)
 
         self.get_logger().info(
-            f"[{image_msg.header.frame_id}] Scored -> "
-            f"Sharpness: {sharpness_score:.1f}, Illumination: {illumination_score:.1f}, Coverage: {area_ratio:.2f}"
+            f"Scored -> Sharpness: {sharpness_score:.1f}, "
+            f"Illumination: {illumination_score:.1f}, Coverage: {area_ratio:.2f}"
         )
 
 
@@ -89,11 +100,11 @@ def main(args=None):
     node = HeuristicScorerNode()
     try:
         rclpy.spin(node)
-    except KeyboardInterrupt:
+    except (KeyboardInterrupt, ExternalShutdownException):
         pass
     finally:
         node.destroy_node()
-        rclpy.shutdown()
+        rclpy.try_shutdown()
 
 
 if __name__ == '__main__':

@@ -1,28 +1,36 @@
 import rclpy
+from rclpy.executors import ExternalShutdownException
 from rclpy.node import Node
+from rclpy.qos import qos_profile_sensor_data
 from sensor_msgs.msg import Image
 import cv2
-import numpy as np
+
 
 class LiveCameraNode(Node):
+    """Optional local webcam publisher (the demo uses the robot's /pi_camera/image_raw)."""
+
     def __init__(self):
         super().__init__('live_camera_node')
-        
-        # Open the default webcam (usually index 0)
-        self.cap = cv2.VideoCapture(0)
+
+        self.declare_parameter('camera_topic', '/pi_camera/image_raw')
+        self.declare_parameter('device_index', 0)
+        self.declare_parameter('fps', 10.0)
+        topic = self.get_parameter('camera_topic').value
+        device = self.get_parameter('device_index').value
+
+        self.cap = cv2.VideoCapture(device)
         if not self.cap.isOpened():
-            self.get_logger().error("Cannot open webcam. Check connection or permissions.")
-            
-        self.image_pub = self.create_publisher(Image, '/camera/image_raw', 10)
-        
-        # Publish at ~10 FPS (100ms timer) to keep CPU usage low
-        self.timer = self.create_timer(0.1, self.publish_frame)
-        self.get_logger().info("Live Camera Node streaming on /camera/image_raw...")
+            raise RuntimeError(f"Cannot open webcam {device}. Check connection or permissions.")
+
+        self.image_pub = self.create_publisher(Image, topic, qos_profile_sensor_data)
+
+        self.timer = self.create_timer(1.0 / self.get_parameter('fps').value, self.publish_frame)
+        self.get_logger().info(f"Live Camera Node streaming on {topic}...")
 
     def publish_frame(self):
         ret, frame = self.cap.read()
         if not ret:
-            self.get_logger().warn("Failed to grab frame from webcam.")
+            self.get_logger().warn("Failed to grab frame from webcam.", throttle_duration_sec=5.0)
             return
 
         # Bypass cv_bridge to avoid Python 3.12 compatibility bugs
@@ -37,17 +45,22 @@ class LiveCameraNode(Node):
 
         self.image_pub.publish(msg)
 
+    def destroy_node(self):
+        self.cap.release()
+        super().destroy_node()
+
+
 def main(args=None):
     rclpy.init(args=args)
     node = LiveCameraNode()
     try:
         rclpy.spin(node)
-    except KeyboardInterrupt:
+    except (KeyboardInterrupt, ExternalShutdownException):
         pass
     finally:
-        node.cap.release()
         node.destroy_node()
-        rclpy.shutdown()
+        rclpy.try_shutdown()
+
 
 if __name__ == '__main__':
     main()
