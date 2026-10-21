@@ -1,5 +1,4 @@
 import os
-import json
 import hashlib
 import cv2
 
@@ -8,36 +7,7 @@ from rclpy.executors import ExternalShutdownException
 from rclpy.node import Node
 from active_perception_interfaces.srv import AnalyzeQuality
 from active_perception.image_utils import image_msg_to_bgr
-
-from google import genai
-from google.genai import types
-
-# Structured output so Gemini always returns exactly these keys
-RESPONSE_SCHEMA = types.Schema(
-    type=types.Type.OBJECT,
-    properties={
-        'occlusion_score': types.Schema(type=types.Type.NUMBER),
-        'framing_score': types.Schema(type=types.Type.NUMBER),
-        'reasoning': types.Schema(type=types.Type.STRING),
-    },
-    required=['occlusion_score', 'framing_score', 'reasoning'],
-)
-
-
-def load_env_file(path: str):
-    """Minimal .env loader (KEY=VALUE lines). Existing env vars win."""
-    if not path or not os.path.isfile(path):
-        return False
-    with open(path) as f:
-        for line in f:
-            line = line.strip()
-            if not line or line.startswith('#') or '=' not in line:
-                continue
-            key, value = line.split('=', 1)
-            key = key.strip().removeprefix('export ').strip()
-            value = value.strip().strip('"').strip("'")
-            os.environ.setdefault(key, value)
-    return True
+from active_perception.vlm import GeminiJudge, load_env_file
 
 
 class VlmBridgeNode(Node):
@@ -49,7 +19,7 @@ class VlmBridgeNode(Node):
         self.declare_parameter('request_timeout_sec', 20.0)
         self.model = self.get_parameter('model').value
         env_file = self.get_parameter('env_file').value
-        timeout_ms = int(self.get_parameter('request_timeout_sec').value * 1000)
+        timeout_sec = self.get_parameter('request_timeout_sec').value
 
         # Load GEMINI_API_KEY from the .env file if it isn't already exported
         if 'GEMINI_API_KEY' not in os.environ and load_env_file(env_file):
@@ -63,8 +33,7 @@ class VlmBridgeNode(Node):
                 "GEMINI_API_KEY is missing (not exported and not found in env_file "
                 f"'{env_file}'). Every VLM call will fail.")
         else:
-            self.client = genai.Client(
-                api_key=api_key, http_options=types.HttpOptions(timeout=timeout_ms))
+            self.client = GeminiJudge(api_key, self.model, timeout_sec)
 
         # Create the Service Server
         self.srv = self.create_service(
@@ -94,37 +63,13 @@ class VlmBridgeNode(Node):
                 raise RuntimeError('JPEG encoding failed')
             image_bytes = buffer.tobytes()
 
-            # 2. Describe the scores we want back
-            prompt = (
-                f"You are an active perception judge for a rover. Look at the target object ({target}) "
-                "in this image. "
-                f"1. occlusion_score: Is the {target} blocked by anything? "
-                "(Score 0-100, where 100 is fully visible). "
-                f"2. framing_score: Is the entire {target} in the frame? "
-                "(Score 0-100, where 100 is perfect). "
-                "3. reasoning: Provide a 1-sentence explanation of your scores."
-            )
+            # 2. Ask Gemini (scores clamped to 0-100)
+            occlusion, framing, reasoning = self.client(image_bytes, target)
 
-            # 3. Call Gemini with a structured JSON response
-            vlm_response = self.client.models.generate_content(
-                model=self.model,
-                contents=[
-                    types.Part.from_bytes(data=image_bytes, mime_type='image/jpeg'),
-                    prompt
-                ],
-                config=types.GenerateContentConfig(
-                    response_mime_type='application/json',
-                    response_schema=RESPONSE_SCHEMA,
-                )
-            )
-
-            # 4. Parse the JSON response
-            result = json.loads(vlm_response.text)
-
-            # 5. Populate the ROS 2 Service Response (clamped to 0-100)
-            response.occlusion_score = min(100.0, max(0.0, float(result['occlusion_score'])))
-            response.framing_score = min(100.0, max(0.0, float(result['framing_score'])))
-            response.reasoning = str(result['reasoning'])
+            # 3. Populate the ROS 2 Service Response
+            response.occlusion_score = occlusion
+            response.framing_score = framing
+            response.reasoning = reasoning
             response.success = True
 
             self.get_logger().info(f"VLM Result: {response.reasoning}")

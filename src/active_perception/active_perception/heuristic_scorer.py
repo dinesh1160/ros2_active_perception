@@ -5,10 +5,9 @@ from sensor_msgs.msg import Image
 from vision_msgs.msg import Detection2DArray
 import message_filters
 
-import cv2
-
 from active_perception_interfaces.msg import HeuristicMetrics
 from active_perception.image_utils import image_msg_to_bgr
+from active_perception.view_quality import illumination, sharpness
 
 
 class HeuristicScorerNode(Node):
@@ -44,6 +43,7 @@ class HeuristicScorerNode(Node):
         detection = max(
             detection_msg.detections,
             key=lambda d: d.results[0].hypothesis.score if d.results else 0.0)
+        confidence = detection.results[0].hypothesis.score if detection.results else 0.0
         cx = detection.bbox.center.position.x
         cy = detection.bbox.center.position.y
         w = detection.bbox.size_x
@@ -72,12 +72,10 @@ class HeuristicScorerNode(Node):
         area_ratio = float((x_max - x_min) * (y_max - y_min) / (img_w * img_h))
 
         # 2. Calculate Illumination (Mean of HSV 'Value' channel on ROI)
-        hsv_roi = cv2.cvtColor(roi, cv2.COLOR_BGR2HSV)
-        illumination_score = float(hsv_roi[:, :, 2].mean())
+        illumination_score = illumination(roi)
 
         # 3. Calculate Sharpness (Variance of Laplacian on grayscale ROI)
-        gray_roi = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
-        sharpness_score = float(cv2.Laplacian(gray_roi, cv2.CV_64F).var())
+        sharpness_score = sharpness(roi)
 
         # Publish the results
         metrics_msg = HeuristicMetrics()
@@ -86,6 +84,7 @@ class HeuristicScorerNode(Node):
         metrics_msg.sharpness_score = sharpness_score
         metrics_msg.illumination_score = illumination_score
         metrics_msg.bbox_area_ratio = area_ratio
+        metrics_msg.detection_confidence = float(confidence)
         metrics_msg.bbox_x_min = float(x_min)
         metrics_msg.bbox_y_min = float(y_min)
         metrics_msg.bbox_x_max = float(x_max)
