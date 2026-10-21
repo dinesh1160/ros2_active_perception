@@ -20,8 +20,11 @@ from nav_msgs.msg import Odometry
 from sensor_msgs.msg import CompressedImage, Image
 from std_srvs.srv import Trigger
 from active_perception_interfaces.msg import HeuristicMetrics
-from active_perception_interfaces.srv import AnalyzeQuality
+from active_perception_interfaces.srv import AnalyzeQuality, CorrectiveMove
+from active_perception.decision import (
+    DecisionParams, Episode, decide_local, decide_vlm, view_rank)
 from active_perception.image_utils import image_msg_to_bgr
+from active_perception.view_quality import Thresholds, assess
 
 
 class CoordinatorNode(Node):
@@ -55,6 +58,22 @@ class CoordinatorNode(Node):
         p('weight_framing', 0.4)
         p('weight_coverage', 0.2)
         p('coverage_full_ratio', 0.25)  # bbox covering this fraction of the frame = full marks
+        p('auto_correct', False)
+        p('max_attempts', 5)
+        p('max_illumination', 235.0)
+        p('min_confidence', 0.5)
+        p('min_coverage', 0.03)
+        p('max_coverage', 0.5)
+        p('max_center_offset', 0.2)
+        p('vlm_min_occlusion', 60.0)
+        p('vlm_min_framing', 60.0)
+        p('camera_hfov_deg', 62.2)
+        p('translate_step_m', 0.15)
+        p('min_range_m', 0.3)
+        p('orbit_radius', 0.8)
+        p('orbit_step_deg', 30.0)
+        p('orbit_direction', 'ccw')
+        p('retake_settle_sec', 2.0)
 
         camera_topic = g('camera_topic')
         self.target_object = g('target_object')
@@ -74,6 +93,20 @@ class CoordinatorNode(Node):
             'coverage': g('weight_coverage'),
         }
         self.coverage_full_ratio = g('coverage_full_ratio')
+        self.auto_correct = g('auto_correct')
+        self.thresholds = Thresholds(
+            min_sharpness=self.MIN_SHARPNESS, min_illumination=self.MIN_ILLUMINATION,
+            max_illumination=g('max_illumination'), min_confidence=g('min_confidence'),
+            min_coverage=g('min_coverage'), max_coverage=g('max_coverage'),
+            max_center_offset=g('max_center_offset'))
+        orbit_sign = 1.0 if g('orbit_direction').lower() == 'ccw' else -1.0
+        self.decision_params = DecisionParams(
+            orbit_step_deg=orbit_sign * g('orbit_step_deg'), camera_hfov_deg=g('camera_hfov_deg'),
+            translate_step_m=g('translate_step_m'), min_range_m=g('min_range_m'),
+            max_attempts=g('max_attempts'), vlm_min_occlusion=g('vlm_min_occlusion'),
+            vlm_min_framing=g('vlm_min_framing'))
+        self.start_range = g('orbit_radius')
+        self.retake_settle = g('retake_settle_sec')
 
         self.state = 'IDLE'
         self.history = []
@@ -88,6 +121,12 @@ class CoordinatorNode(Node):
         self.current_eval = None
         self.deadline = None
         self.settle_until = None
+        self.episode = None
+        self.assessment = None
+        self.next_move = None
+        self.move_queue = []
+        self.after_moves = None  # 'snapshot' or 'park'
+        self.best_target = None
 
         # 1. Listen to the continuous camera stream quietly in the background.
         #    Sensor-data QoS (best effort) works with both reliable and best-effort publishers.
@@ -105,6 +144,7 @@ class CoordinatorNode(Node):
         # Services
         self.vlm_client = self.create_client(AnalyzeQuality, '/analyze_view_quality')
         self.motion_client = self.create_client(Trigger, '/move_to_next_view')
+        self.corrective_client = self.create_client(CorrectiveMove, '/corrective_move')
         self.create_service(Trigger, '/evaluate_now', self.handle_evaluate_now)
         self.create_service(Trigger, '/finish_benchmark', self.handle_finish)
 
@@ -113,7 +153,8 @@ class CoordinatorNode(Node):
 
         self.get_logger().info(
             f"Coordinator ready. Camera: '{camera_topic}', target: '{self.target_object}', "
-            f"motion: {'on' if self.enable_motion else 'off'}. "
+            f"motion: {'on' if self.enable_motion else 'off'}, "
+            f"auto_correct: {'on' if self.auto_correct else 'off'}. "
             "Press ENTER in the trigger terminal to snap a frame.")
 
     # ---------------- inputs ----------------
@@ -142,6 +183,9 @@ class CoordinatorNode(Node):
             response.message = "No camera feed detected."
             self.get_logger().error(response.message)
             return response
+
+        if self.auto_correct:
+            return self.start_episode(response)
 
         # First view is taken where the robot stands; every later one moves first
         if self.enable_motion and self.eval_counter > 0:
@@ -178,6 +222,9 @@ class CoordinatorNode(Node):
             res = future.result()
         except Exception as e:
             res = Trigger.Response(success=False, message=str(e))
+        if self.episode is not None:
+            self.episode_move_done(res)
+            return
         if not res.success:
             self.get_logger().error(
                 f"Move failed: {res.message}. The robot may be off the orbit: re-place it facing the "
@@ -291,8 +338,20 @@ class CoordinatorNode(Node):
             f"Heuristics -> Sharpness: {msg.sharpness_score:.1f}, "
             f"Illum: {msg.illumination_score:.1f}, Coverage: {msg.bbox_area_ratio * 100:.1f}%")
 
+        if self.auto_correct:
+            h, w = self.snapshot_bgr.shape[:2]
+            self.assessment = assess(msg.sharpness_score, msg.illumination_score,
+                                     msg.detection_confidence, ev['bbox'], w, h, self.thresholds)
+            ev['detection_confidence'] = msg.detection_confidence
+            ev['local'] = self.assessment.to_dict()
+            self.next_move = decide_local(self.assessment, self.episode.range_m, self.decision_params)
+            if self.next_move is not None:
+                self.get_logger().warn(f"Local check failed: {self.next_move.reason}")
+                self.finish_eval('rejected', self.next_move.reason)
+                return
+
         # 1. Fast Heuristics Check
-        if msg.sharpness_score < self.MIN_SHARPNESS or msg.illumination_score < self.MIN_ILLUMINATION:
+        elif msg.sharpness_score < self.MIN_SHARPNESS or msg.illumination_score < self.MIN_ILLUMINATION:
             reason = "Failed Heuristics (Blurry or Dark)"
             self.get_logger().warn(f"Discarded: {reason}")
             self.finish_eval('rejected', reason)
@@ -343,6 +402,9 @@ class CoordinatorNode(Node):
         self.get_logger().info(
             f"VLM Score -> Occ: {res.occlusion_score:.0f}, Frame: {res.framing_score:.0f}, "
             f"Coverage: {ev['coverage_score']:.0f} => Total {ev['total_score']:.1f} ({res.reasoning})")
+        if self.auto_correct:
+            self.next_move = decide_vlm(res.occlusion_score, res.framing_score, self.assessment,
+                                        self.episode.range_m, self.decision_params)
         self.finish_eval('scored', res.reasoning)
 
     def tick(self):
@@ -351,10 +413,13 @@ class CoordinatorNode(Node):
         # After a move: snap the first frame that arrived after the settle time
         if self.state == 'SETTLING':
             if now >= self.settle_until and self.latest_frame_time >= self.settle_until:
-                self.take_snapshot()
+                ok, message = self.take_snapshot()
+                if not ok:
+                    self.abort_episode(message)
             elif (now - self.settle_until).nanoseconds / 1e9 > self.frame_wait_timeout:
                 self.get_logger().error("No camera frame arrived after the move. Resetting to IDLE.")
                 self.state = 'IDLE'
+                self.abort_episode("no camera frame after the move")
             return
 
         if self.deadline is None or now.nanoseconds < self.deadline:
@@ -363,6 +428,7 @@ class CoordinatorNode(Node):
             self.get_logger().error("Timed out waiting for the move to finish. Resetting to IDLE.")
             self.state = 'IDLE'
             self.deadline = None
+            self.abort_episode("move timed out")
             return
         stage = 'heuristic metrics' if self.state == 'WAITING_FOR_METRICS' else 'VLM response'
         self.get_logger().error(
@@ -375,6 +441,17 @@ class CoordinatorNode(Node):
         ev = self.current_eval
         ev['status'] = status
         ev['reason'] = reason
+        if self.episode is not None:
+            move = self.next_move
+            last_view = self.episode.attempts + 1 >= self.decision_params.max_attempts
+            if status == 'scored' and move is None:
+                ev['decision'] = 'accept'
+            elif move is None or move.action == 'stop' or status not in ('scored', 'rejected'):
+                ev['decision'] = 'return_to_best'
+            elif last_view:
+                ev['decision'] = {'return_to_best': 'attempt limit', 'proposed': move.to_dict()}
+            else:
+                ev['decision'] = move.to_dict()
         self.history.append(ev)
         try:
             cv2.imwrite(os.path.join(self.run_dir, ev['annotated_image']),
@@ -387,7 +464,128 @@ class CoordinatorNode(Node):
         self.snapshot_bgr = None
         self.deadline = None
         self.state = 'IDLE'
+        if self.episode is not None:
+            self.continue_episode(ev)
+            return
         self.get_logger().info(f"✅ {ev['frame']} done ({status}). Ready for next angle.")
+
+    # ---------------- corrective loop ----------------
+    def start_episode(self, response):
+        age = (self.get_clock().now() - self.latest_frame_time).nanoseconds / 1e9
+        if age > self.max_frame_age:
+            response.success = False
+            response.message = f"Camera feed is stale (last frame {age:.1f}s ago)."
+            self.get_logger().error(response.message)
+            return response
+        self.episode = Episode(self.decision_params, self.start_range)
+        self.get_logger().info(
+            f"\n🎯 Corrective episode started (max {self.decision_params.max_attempts} views).")
+        ok, message = self.take_snapshot()
+        if not ok:
+            self.episode = None
+        response.success = ok
+        response.message = "Episode started: " + message
+        return response
+
+    def continue_episode(self, ev):
+        ep = self.episode
+        ep.record_view(ev['frame'], view_rank(ev['status'], ev['total_score'],
+                                              self.assessment if 'local' in ev else None))
+        move, self.next_move, self.assessment = self.next_move, None, None
+
+        if ev['status'] == 'scored' and move is None:
+            self.end_episode(f"✅ {ev['frame']} accepted (score {ev['total_score']:.1f}).")
+            return
+        if ev['status'] not in ('scored', 'rejected'):
+            self.return_to_best(f"{ev['frame']}: {ev['reason']}")
+            return
+        if move.action == 'stop':
+            self.return_to_best(move.reason)
+            return
+        if ep.exhausted:
+            self.return_to_best(f"attempt limit ({ep.attempts}) reached")
+            return
+
+        self.get_logger().info(
+            f"Attempt {ep.attempts}/{self.decision_params.max_attempts}: {move.action} "
+            f"{move.value:+.2f} to fix {move.factor}.")
+        if move.action == 'retake':
+            ep.record_move(move)
+            self.state = 'SETTLING'
+            self.settle_until = self.get_clock().now() + Duration(seconds=self.retake_settle)
+            return
+        self.run_moves([move], 'snapshot')
+
+    def return_to_best(self, why):
+        ep = self.episode
+        best = ep.best_view()
+        path = ep.retrace_to(best)
+        self.get_logger().warn(
+            f"Stopping corrections ({why}). Best view so far: {best.name}; "
+            f"undoing {len(path)} move(s) to get back to it.")
+        if not path:
+            self.end_episode(f"Parked at best view {best.name}.")
+            return
+        self.best_target = best.name
+        self.run_moves(path, 'park')
+
+    def run_moves(self, moves, then):
+        if not self.corrective_client.service_is_ready():
+            self.abort_episode("motion node not available (/corrective_move)")
+            return
+        self.move_queue = list(moves)
+        self.after_moves = then
+        self.call_next_move()
+
+    def call_next_move(self):
+        move = self.move_queue[0]
+        req = CorrectiveMove.Request()
+        if move.action in ('approach', 'back_off'):
+            req.action = 'translate'
+            req.value = float(move.value if move.action == 'approach' else -move.value)
+        else:
+            req.action = move.action
+            req.value = float(move.value)
+        req.radius = float(move.radius)
+        self.state = 'MOVING'
+        self.deadline = self.get_clock().now().nanoseconds + int(self.motion_timeout * 1e9)
+        self.get_logger().info(f"🚗 {move.action} {move.value:+.2f} ({move.reason})")
+        self.corrective_client.call_async(req).add_done_callback(self.motion_done_callback)
+
+    def episode_move_done(self, res):
+        self.deadline = None
+        if not res.success:
+            self.state = 'IDLE'
+            self.abort_episode(f"move failed: {res.message}")
+            return
+        move = self.move_queue.pop(0)
+        if self.after_moves == 'snapshot':
+            self.episode.record_move(move)
+        if self.move_queue:
+            self.call_next_move()
+            return
+        if self.after_moves == 'park':
+            self.state = 'IDLE'
+            self.end_episode(f"Parked at best view {self.best_target}.")
+            return
+        self.get_logger().info(f"Move done ({res.message}). Settling {self.settle_sec:.1f}s...")
+        self.state = 'SETTLING'
+        self.settle_until = self.get_clock().now() + Duration(seconds=self.settle_sec)
+
+    def end_episode(self, message):
+        ep = self.episode
+        self.episode = None
+        self.move_queue = []
+        self.get_logger().info(f"{message} Episode used {ep.attempts} view(s) and "
+                               f"{len(ep.moves)} move(s). Press ENTER for a new episode.")
+
+    def abort_episode(self, why):
+        if self.episode is None:
+            return
+        self.episode = None
+        self.move_queue = []
+        self.get_logger().error(
+            f"Episode aborted ({why}). Not retracing: check the robot before the next episode.")
 
     # ---------------- output files ----------------
     def annotate(self, bgr, ev):
