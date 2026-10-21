@@ -29,6 +29,7 @@ from geometry_msgs.msg import Twist
 from nav_msgs.msg import Odometry
 from sensor_msgs.msg import Imu, LaserScan
 from std_srvs.srv import Trigger
+from active_perception_interfaces.srv import CorrectiveMove
 
 
 def wrap_angle(a):
@@ -88,6 +89,8 @@ class MotionNode(Node):
         p('obstacle_clearance', 0.15)   # m, stop when something is this close to the bumper
         p('scan_front_angle_deg', 0.0)  # lidar angle that points to the robot's front
         p('scan_front_half_width_deg', 20.0)
+        p('robot_rear_offset', 0.19)    # m, lidar centre to rear bumper
+        p('max_translate_m', 0.5)
 
         self.use_arming = g('use_arming')
         self.radius = g('orbit_radius')
@@ -116,6 +119,8 @@ class MotionNode(Node):
         self.obstacle_dist = g('robot_front_offset') + g('obstacle_clearance')
         self.scan_front = math.radians(g('scan_front_angle_deg'))
         self.scan_half = math.radians(g('scan_front_half_width_deg'))
+        self.rear_obstacle_dist = g('robot_rear_offset') + g('obstacle_clearance')
+        self.max_translate = g('max_translate_m')
 
         self.lock = threading.Lock()
         self.pos = None             # (x, y) from odometry
@@ -128,6 +133,7 @@ class MotionNode(Node):
         self.last_imu = None        # (stamp_sec, corrected gyro z)
         self.imu_time = None
         self.front_min = None       # nearest range in the front sector
+        self.rear_min = None
         self.scan_time = None
         self.busy = False
         self.stopping = False
@@ -145,6 +151,7 @@ class MotionNode(Node):
         # stall the 20 Hz command stream and trip the robot's 500 ms watchdog.)
         self.service_node = rclpy.create_node('motion_node_service')
         self.service_node.create_service(Trigger, '/move_to_next_view', self.handle_move)
+        self.service_node.create_service(CorrectiveMove, '/corrective_move', self.handle_corrective)
 
         chord = 2.0 * self.radius * math.sin(self.step / 2.0)
         turn_desc = (f"IMU '{g('imu_topic')}' (x{self.imu_sign:+.4g})" if self.turn_source == 'imu'
@@ -184,15 +191,18 @@ class MotionNode(Node):
             self.imu_time = time.monotonic()
 
     def scan_callback(self, msg: LaserScan):
-        nearest = math.inf
+        nearest = rear = math.inf
         for i, r in enumerate(msg.ranges):
             if not (msg.range_min <= r <= msg.range_max) or r < self.scan_ignore:
                 continue  # inf / nan / out of range / the robot's own body
             angle = msg.angle_min + i * msg.angle_increment
             if abs(wrap_angle(angle - self.scan_front)) <= self.scan_half:
                 nearest = min(nearest, r)
+            elif abs(wrap_angle(angle - self.scan_front - math.pi)) <= self.scan_half:
+                rear = min(rear, r)
         with self.lock:
             self.front_min = nearest
+            self.rear_min = rear
             self.scan_time = time.monotonic()
         if not self.logged_front:
             self.logged_front = True
@@ -280,7 +290,9 @@ class MotionNode(Node):
                                f"(target {math.degrees(target):+.1f})")
 
     def drive(self, distance, heading):
-        """Drive straight `distance` metres, holding `heading` with a small yaw correction."""
+        """Drive straight `distance` metres (negative = backwards), holding `heading`."""
+        direction = 1.0 if distance >= 0 else -1.0
+        distance = abs(distance)
         x0, y0, _ = self.state()
         timeout = time.monotonic() + distance / self.v * 2.0 + 5.0
         while True:
@@ -293,22 +305,38 @@ class MotionNode(Node):
                 raise MotionError(f"Drive timed out ({travelled:.2f}/{distance:.2f} m)")
             if self.obstacle_enabled:
                 with self.lock:
-                    front, scan_time = self.front_min, self.scan_time
+                    front, rear, scan_time = self.front_min, self.rear_min, self.scan_time
                 if scan_time is None or time.monotonic() - scan_time > 1.0:
                     raise MotionError("No fresh lidar scan; refusing to drive "
                                       "(set obstacle_stop_enabled:=false to bypass)")
-                if front < self.obstacle_dist:
+                if direction > 0 and front < self.obstacle_dist:
                     raise MotionError(f"Obstacle {front:.2f} m ahead of the lidar; "
+                                      f"stopped after {travelled:.2f} m")
+                if direction < 0 and rear < self.rear_obstacle_dist:
+                    raise MotionError(f"Obstacle {rear:.2f} m behind the lidar; "
                                       f"stopped after {travelled:.2f} m")
             # Slow down for the last 10 cm
             v = self.v if distance - travelled > 0.10 else max(0.08, self.v * 0.5)
             w = max(-0.3, min(0.3, 1.5 * (heading - h)))
-            self.publish(v, w)
+            self.publish(direction * v, w)
             time.sleep(self.dt)
         self.hold_stop(self.stop_hold)
 
-    # ---------------- service ----------------
-    def handle_move(self, request, response):
+    def orbit(self, step, radius):
+        sign = 1.0 if step >= 0 else -1.0
+        half = abs(step) / 2.0
+        chord = 2.0 * radius * math.sin(half)
+        heading_chord = -sign * (math.pi / 2.0 - half)
+        self.get_logger().info(
+            f"Turning {math.degrees(heading_chord):+.0f} deg (away from the target, along the path)")
+        self.rotate_to(heading_chord)
+        self.get_logger().info(f"Driving {chord:.2f} m")
+        self.drive(chord, heading_chord)
+        self.get_logger().info(
+            f"Turning {math.degrees(step - heading_chord):+.0f} deg back to face the target")
+        self.rotate_to(step)
+
+    def run_move(self, body, response):
         if self.busy:
             response.success = False
             response.message = "Already moving"
@@ -317,30 +345,18 @@ class MotionNode(Node):
         armed = False
         try:
             self.check_sensors()
-            self.reset_heading()  # robot is still: heading 0 = facing the target
-            half = self.step / 2.0
-            chord = 2.0 * self.radius * math.sin(half)
-            heading_chord = -self.sign * (math.pi / 2.0 - half)
-            heading_final = self.sign * self.step
+            self.reset_heading()
 
             if self.use_arming:
                 self.call_trigger(self.arm_client, '/lyra/arm')
                 armed = True
                 self.hold_stop(0.3)  # keep the cmd watchdog fed while the gate opens
 
-            self.get_logger().info(
-                f"Turning {math.degrees(heading_chord):+.0f} deg (away from the target, along the path)")
-            self.rotate_to(heading_chord)
-            self.get_logger().info(f"Driving {chord:.2f} m")
-            self.drive(chord, heading_chord)
-            self.get_logger().info(
-                f"Turning {math.degrees(heading_final - heading_chord):+.0f} deg back to face the target")
-            self.rotate_to(heading_final)
+            body()
 
             x, y, h = self.state()
             response.success = True
-            response.message = (f"Arrived at x={x:.2f} y={y:.2f}, turned {math.degrees(h):+.0f} deg "
-                                "in total (net orbit step)")
+            response.message = f"Arrived at x={x:.2f} y={y:.2f}, turned {math.degrees(h):+.0f} deg in total"
             self.get_logger().info(response.message)
         except MotionError as e:
             response.success = False
@@ -360,6 +376,30 @@ class MotionNode(Node):
                     self.get_logger().warn(f"Disarm failed ({e}); robot auto-disarms after 500 ms")
             self.busy = False
         return response
+
+    # ---------------- service ----------------
+    def handle_move(self, request, response):
+        return self.run_move(lambda: self.orbit(self.sign * self.step, self.radius), response)
+
+    def handle_corrective(self, request, response):
+        action, value = request.action, float(request.value)
+        self.get_logger().info(f"Corrective move: {action} {value:+.2f} (radius {request.radius:.2f})")
+        if action == 'orbit':
+            radius = float(request.radius) if request.radius > 0 else self.radius
+            body = lambda: self.orbit(math.radians(value), radius)  # noqa: E731
+        elif action == 'rotate':
+            body = lambda: self.rotate_to(math.radians(value))  # noqa: E731
+        elif action == 'translate':
+            if abs(value) > self.max_translate:
+                response.success = False
+                response.message = f"Translate {value:.2f} m exceeds max_translate_m {self.max_translate}"
+                return response
+            body = lambda: self.drive(value, 0.0)  # noqa: E731
+        else:
+            response.success = False
+            response.message = f"Unknown action '{action}' (orbit / rotate / translate)"
+            return response
+        return self.run_move(body, response)
 
     def emergency_stop(self):
         """On shutdown: abort any move, send zeros and disarm (best effort)."""
