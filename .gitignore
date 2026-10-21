@@ -37,3 +37,10 @@ Thumbs.db
 
 # Per-run snapshots and scores
 /runs/
+
+
+# Model weights (ultralytics downloads yolov8n.pt on first use)
+*.pt
+
+# Generated evaluation images (rebuild with: python eval/make_testset.py)
+/eval/testset/

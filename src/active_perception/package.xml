@@ -6,7 +6,7 @@
   <version>0.0.0</version>
   <description>Active perception: pick the best camera angle with YOLO, heuristics and a VLM</description>
   <maintainer email="dinesharunachalam116@gmail.com">bluegoose</maintainer>
-  <license>TODO: License declaration</license>
+  <license>Apache-2.0</license>
 
   <depend>rclpy</depend>
   <depend>rcl_interfaces</depend>
