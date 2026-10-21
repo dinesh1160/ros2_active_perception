@@ -1,0 +1,17 @@
+{
+  "_comment": "bbox = hand-checked target box in the (cropped) base image, x_min y_min x_max y_max. 'ultralytics:' files are the sample images shipped with the ultralytics package (not redistributed here).",
+  "bases": [
+    {"name": "robot_bottle", "file": "robot_bottle.jpg", "target": "bottle",
+     "bbox": [120, 36, 183, 233]},
+    {"name": "bus_person", "file": "ultralytics:bus.jpg", "crop": [0, 300, 480, 1020], "target": "person",
+     "bbox": [222, 103, 343, 560]}
+  ],
+  "natural": [
+    {"name": "robot_bottle_cut_off", "file": "robot_bottle_cut_off.jpg", "target": "bottle",
+     "expected_factor": "framing", "expected_move": "back_off",
+     "note": "real robot snapshot: bottle fills the frame height, top cut off"},
+    {"name": "robot_bottle_far", "file": "robot_bottle_far.jpg", "target": "bottle",
+     "expected_factor": "framing", "expected_move": "approach",
+     "note": "real robot snapshot: bottle far away (about 2% of the frame)"}
+  ]
+}

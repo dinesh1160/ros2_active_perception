@@ -1,0 +1,81 @@
+case,base,perturbation,level,expected_factor,expected_move,detected,confidence,iou_with_gt,passed_local,failed_factors,weakest,framing_issue,move,move_value,gt_coverage,gt_center_offset_x,gt_sharpness,gt_illumination,gt_confidence,gt_score_sharpness,gt_score_exposure,gt_score_visibility,gt_score_framing,outcome
+robot_bottle__clean,robot_bottle,clean,,,,True,0.812,0.99,True,,visibility,off_center,,,0.162,-0.027,925.578,149.867,0.812,1.0,1.0,0.812,1.0,
+robot_bottle__gaussian_blur_1,robot_bottle,gaussian_blur,1,sharpness,retake,True,0.792,0.96,True,,sharpness,off_center,,,0.162,-0.027,57.541,149.731,0.792,0.575,1.0,0.792,1.0,passed_local
+robot_bottle__gaussian_blur_2,robot_bottle,gaussian_blur,2,sharpness,retake,True,0.713,0.93,False,sharpness,sharpness,off_center,retake,0.0,0.162,-0.027,12.699,149.425,0.713,0.127,1.0,0.713,1.0,correct
+robot_bottle__gaussian_blur_3,robot_bottle,gaussian_blur,3,sharpness,retake,False,0.0,,False,,,,stop,,0.162,-0.027,5.571,149.186,0.0,0.056,1.0,0.0,1.0,target_lost
+robot_bottle__gaussian_blur_5,robot_bottle,gaussian_blur,5,sharpness,retake,False,0.0,,False,,,,stop,,0.162,-0.027,3.076,148.675,0.0,0.031,1.0,0.0,1.0,target_lost
+robot_bottle__gaussian_blur_8,robot_bottle,gaussian_blur,8,sharpness,retake,False,0.0,,False,,,,stop,,0.162,-0.027,2.237,147.946,0.0,0.022,1.0,0.0,1.0,target_lost
+robot_bottle__motion_blur_5,robot_bottle,motion_blur,5,sharpness,retake,True,0.842,0.93,True,,visibility,off_center,,,0.162,-0.027,136.084,149.646,0.842,1.0,1.0,0.842,1.0,passed_local
+robot_bottle__motion_blur_9,robot_bottle,motion_blur,9,sharpness,retake,True,0.576,0.94,True,,visibility,off_center,,,0.162,-0.027,77.159,149.282,0.576,0.772,1.0,0.576,1.0,passed_local
+robot_bottle__motion_blur_15,robot_bottle,motion_blur,15,sharpness,retake,False,0.0,,False,,,,stop,,0.162,-0.027,51.928,148.832,0.0,0.519,1.0,0.0,1.0,target_lost
+robot_bottle__motion_blur_25,robot_bottle,motion_blur,25,sharpness,retake,False,0.0,,False,,,,stop,,0.162,-0.027,37.878,148.121,0.0,0.379,1.0,0.0,1.0,target_lost
+robot_bottle__motion_blur_41,robot_bottle,motion_blur,41,sharpness,retake,False,0.0,,False,,,,stop,,0.162,-0.027,30.686,146.737,0.0,0.307,1.0,0.0,1.0,target_lost
+robot_bottle__underexpose_0.6,robot_bottle,underexpose,0.6,exposure,orbit,True,0.833,0.99,True,,visibility,off_center,,,0.162,-0.027,392.532,89.599,0.833,1.0,1.0,0.833,1.0,passed_local
+robot_bottle__underexpose_0.4,robot_bottle,underexpose,0.4,exposure,orbit,True,0.815,0.98,True,,visibility,off_center,,,0.162,-0.027,147.056,59.564,0.815,1.0,0.993,0.815,1.0,passed_local
+robot_bottle__underexpose_0.25,robot_bottle,underexpose,0.25,exposure,orbit,True,0.73,0.96,True,,exposure,off_center,,,0.162,-0.027,63.161,37.284,0.73,0.632,0.621,0.73,1.0,passed_local
+robot_bottle__underexpose_0.15,robot_bottle,underexpose,0.15,exposure,orbit,True,0.647,0.97,False,sharpness exposure,sharpness,off_center,retake,0.0,0.162,-0.027,22.782,22.046,0.647,0.228,0.367,0.647,1.0,wrong_move
+robot_bottle__underexpose_0.08,robot_bottle,underexpose,0.08,exposure,orbit,False,0.0,,False,,,,stop,,0.162,-0.027,6.677,11.712,0.0,0.067,0.195,0.0,1.0,target_lost
+robot_bottle__overexpose_1.5,robot_bottle,overexpose,1.5,exposure,orbit,True,0.635,0.97,True,,visibility,off_center,,,0.162,-0.027,1371.952,218.231,0.635,1.0,0.919,0.635,1.0,passed_local
+robot_bottle__overexpose_2.0,robot_bottle,overexpose,2.0,exposure,orbit,True,0.35,0.96,False,exposure visibility,exposure,off_center,orbit,30.0,0.162,-0.027,1190.534,248.914,0.35,1.0,0.152,0.35,1.0,correct
+robot_bottle__overexpose_3.0,robot_bottle,overexpose,3.0,exposure,orbit,False,0.0,,False,,,,stop,,0.162,-0.027,843.597,253.292,0.0,1.0,0.043,0.0,1.0,target_lost
+robot_bottle__overexpose_4.0,robot_bottle,overexpose,4.0,exposure,orbit,False,0.0,,False,,,,stop,,0.162,-0.027,593.076,254.141,0.0,1.0,0.021,0.0,1.0,target_lost
+robot_bottle__overexpose_6.0,robot_bottle,overexpose,6.0,exposure,orbit,False,0.0,,False,,,,stop,,0.162,-0.027,258.326,254.722,0.0,1.0,0.007,0.0,1.0,target_lost
+robot_bottle__zoom_out_0.7,robot_bottle,zoom_out,0.7,framing,approach,True,0.666,0.95,True,,visibility,off_center,,,0.079,-0.019,519.938,149.836,0.666,1.0,1.0,0.666,1.0,passed_local
+robot_bottle__zoom_out_0.5,robot_bottle,zoom_out,0.5,framing,approach,True,0.391,0.95,False,visibility,visibility,too_small,orbit,30.0,0.04,-0.014,1112.439,149.745,0.391,1.0,1.0,0.391,0.659,wrong_move
+robot_bottle__zoom_out_0.35,robot_bottle,zoom_out,0.35,framing,approach,True,0.269,0.93,False,visibility framing,visibility,too_small,orbit,30.0,0.02,-0.009,1229.176,149.833,0.269,1.0,1.0,0.269,0.329,wrong_move
+robot_bottle__zoom_out_0.25,robot_bottle,zoom_out,0.25,framing,approach,False,0.0,,False,,,,stop,,0.01,-0.008,1361.391,148.831,0.0,1.0,1.0,0.0,0.16,target_lost
+robot_bottle__zoom_out_0.15,robot_bottle,zoom_out,0.15,framing,approach,False,0.0,,False,,,,stop,,0.003,-0.005,1665.31,149.042,0.0,1.0,1.0,0.0,0.057,target_lost
+robot_bottle__zoom_in_1.5,robot_bottle,zoom_in,1.5,framing,back_off,False,0.0,,False,,,,stop,,0.297,-0.002,183.937,149.64,0.0,1.0,1.0,0.0,0.25,target_lost
+robot_bottle__zoom_in_2.0,robot_bottle,zoom_in,2.0,framing,back_off,False,0.0,,False,,,,stop,,0.394,0.0,90.853,148.69,0.0,0.909,1.0,0.0,0.25,target_lost
+robot_bottle__zoom_in_3.0,robot_bottle,zoom_in,3.0,framing,back_off,True,0.296,0.0,False,visibility framing,framing,off_center,rotate,-22.353,0.591,-0.002,37.08,146.847,0.296,0.371,1.0,0.296,0.25,wrong_target
+robot_bottle__zoom_in_4.0,robot_bottle,zoom_in,4.0,framing,back_off,False,0.0,,False,,,,stop,,0.787,0.0,18.171,146.369,0.0,0.182,1.0,0.0,0.25,target_lost
+robot_bottle__shift_0.15,robot_bottle,shift,0.15,framing,rotate,True,0.772,0.97,True,,framing,off_center,,,0.162,0.148,429.176,149.752,0.772,1.0,1.0,0.772,0.674,passed_local
+robot_bottle__shift_0.25,robot_bottle,shift,0.25,framing,rotate,True,0.807,0.97,False,framing,framing,off_center,rotate,-15.647,0.162,0.248,519.569,149.741,0.807,1.0,1.0,0.807,0.403,correct
+robot_bottle__shift_0.35,robot_bottle,shift,0.35,framing,rotate,True,0.792,0.97,False,framing,framing,off_center,rotate,-21.77,0.162,0.348,665.074,149.703,0.792,1.0,1.0,0.792,0.287,correct
+robot_bottle__shift_0.45,robot_bottle,shift,0.45,framing,rotate,True,0.642,0.96,False,framing,framing,off_center,rotate,-26.435,0.123,0.425,777.963,147.726,0.642,1.0,1.0,0.642,0.235,correct
+robot_bottle__occlusion_0.2,robot_bottle,occlusion,0.2,visibility,orbit,True,0.732,0.79,True,,visibility,off_center,,,0.162,-0.027,623.894,144.663,0.732,1.0,1.0,0.732,1.0,passed_local
+robot_bottle__occlusion_0.35,robot_bottle,occlusion,0.35,visibility,orbit,True,0.41,0.65,False,visibility framing,framing,too_big,back_off,0.15,0.162,-0.027,624.152,142.527,0.41,1.0,1.0,0.41,1.0,wrong_move
+robot_bottle__occlusion_0.5,robot_bottle,occlusion,0.5,visibility,orbit,False,0.0,,False,,,,stop,,0.162,-0.027,720.647,140.516,0.0,1.0,1.0,0.0,1.0,target_lost
+robot_bottle__occlusion_0.65,robot_bottle,occlusion,0.65,visibility,orbit,False,0.0,,False,,,,stop,,0.162,-0.027,807.964,137.539,0.0,1.0,1.0,0.0,1.0,target_lost
+robot_bottle__occlusion_0.8,robot_bottle,occlusion,0.8,visibility,orbit,False,0.0,,False,,,,stop,,0.162,-0.027,892.054,134.433,0.0,1.0,1.0,0.0,1.0,target_lost
+bus_person__clean,bus_person,clean,,,,True,0.871,0.99,True,,visibility,off_center,,,0.16,0.089,3064.305,93.94,0.871,1.0,1.0,0.871,1.0,
+bus_person__gaussian_blur_1,bus_person,gaussian_blur,1,sharpness,retake,True,0.875,0.98,True,,visibility,off_center,,,0.16,0.089,162.302,93.924,0.875,1.0,1.0,0.875,1.0,passed_local
+bus_person__gaussian_blur_2,bus_person,gaussian_blur,2,sharpness,retake,True,0.875,0.98,False,sharpness,sharpness,off_center,retake,0.0,0.16,0.089,21.051,93.75,0.875,0.211,1.0,0.875,1.0,correct
+bus_person__gaussian_blur_3,bus_person,gaussian_blur,3,sharpness,retake,True,0.857,0.99,False,sharpness,sharpness,off_center,retake,0.0,0.16,0.089,8.108,93.555,0.857,0.081,1.0,0.857,1.0,correct
+bus_person__gaussian_blur_5,bus_person,gaussian_blur,5,sharpness,retake,True,0.814,0.98,False,sharpness,sharpness,off_center,retake,0.0,0.16,0.089,3.592,92.969,0.814,0.036,1.0,0.814,1.0,correct
+bus_person__gaussian_blur_8,bus_person,gaussian_blur,8,sharpness,retake,True,0.751,0.0,False,sharpness framing,sharpness,off_center,retake,0.0,0.16,0.089,2.45,92.013,0.751,0.024,1.0,0.751,1.0,wrong_target
+bus_person__motion_blur_5,bus_person,motion_blur,5,sharpness,retake,True,0.877,0.98,True,,visibility,off_center,,,0.16,0.089,910.511,93.866,0.877,1.0,1.0,0.877,1.0,passed_local
+bus_person__motion_blur_9,bus_person,motion_blur,9,sharpness,retake,True,0.871,0.96,True,,visibility,off_center,,,0.16,0.089,452.285,93.666,0.871,1.0,1.0,0.871,1.0,passed_local
+bus_person__motion_blur_15,bus_person,motion_blur,15,sharpness,retake,True,0.84,0.96,True,,visibility,off_center,,,0.16,0.089,245.614,93.313,0.84,1.0,1.0,0.84,1.0,passed_local
+bus_person__motion_blur_25,bus_person,motion_blur,25,sharpness,retake,True,0.709,0.0,False,framing,framing,off_center,rotate,14.319,0.16,0.089,153.619,92.584,0.709,1.0,1.0,0.709,1.0,wrong_target
+bus_person__motion_blur_41,bus_person,motion_blur,41,sharpness,retake,True,0.54,0.61,False,sharpness,sharpness,off_center,retake,0.0,0.16,0.089,95.317,91.496,0.54,0.953,1.0,0.54,1.0,correct
+bus_person__underexpose_0.6,bus_person,underexpose,0.6,exposure,orbit,True,0.86,0.99,True,,visibility,off_center,,,0.16,0.089,1107.323,55.946,0.86,1.0,0.932,0.86,1.0,passed_local
+bus_person__underexpose_0.4,bus_person,underexpose,0.4,exposure,orbit,True,0.857,0.98,True,,exposure,off_center,,,0.16,0.089,501.186,37.205,0.857,1.0,0.62,0.857,1.0,passed_local
+bus_person__underexpose_0.25,bus_person,underexpose,0.25,exposure,orbit,True,0.858,0.98,False,exposure,exposure,off_center,orbit,30.0,0.16,0.089,199.868,23.129,0.858,1.0,0.385,0.858,1.0,correct
+bus_person__underexpose_0.15,bus_person,underexpose,0.15,exposure,orbit,True,0.86,0.96,False,exposure,exposure,off_center,orbit,30.0,0.16,0.089,74.656,13.642,0.86,0.747,0.227,0.86,1.0,correct
+bus_person__underexpose_0.08,bus_person,underexpose,0.08,exposure,orbit,True,0.845,0.97,False,sharpness exposure,exposure,off_center,orbit,30.0,0.16,0.089,21.091,6.909,0.845,0.211,0.115,0.845,1.0,correct
+bus_person__overexpose_1.5,bus_person,overexpose,1.5,exposure,orbit,True,0.865,0.98,True,,visibility,off_center,,,0.16,0.089,4575.675,125.879,0.865,1.0,1.0,0.865,1.0,passed_local
+bus_person__overexpose_2.0,bus_person,overexpose,2.0,exposure,orbit,True,0.869,0.96,True,,visibility,off_center,,,0.16,0.089,6009.693,145.827,0.869,1.0,1.0,0.869,1.0,passed_local
+bus_person__overexpose_3.0,bus_person,overexpose,3.0,exposure,orbit,True,0.861,0.95,True,,visibility,off_center,,,0.16,0.089,8339.709,174.114,0.861,1.0,1.0,0.861,1.0,passed_local
+bus_person__overexpose_4.0,bus_person,overexpose,4.0,exposure,orbit,True,0.861,0.94,True,,visibility,off_center,,,0.16,0.089,9564.704,192.892,0.861,1.0,1.0,0.861,1.0,passed_local
+bus_person__overexpose_6.0,bus_person,overexpose,6.0,exposure,orbit,True,0.819,0.0,False,exposure framing,exposure,off_center,orbit,30.0,0.16,0.089,10677.922,212.48,0.819,1.0,1.0,0.819,1.0,wrong_target
+bus_person__zoom_out_0.7,bus_person,zoom_out,0.7,framing,approach,True,0.883,0.07,True,,framing,off_center,,,0.079,0.061,2377.122,94.198,0.883,1.0,1.0,0.883,1.0,wrong_target
+bus_person__zoom_out_0.5,bus_person,zoom_out,0.5,framing,approach,True,0.874,0.08,True,,visibility,off_center,,,0.04,0.044,4272.077,93.538,0.874,1.0,1.0,0.874,0.663,wrong_target
+bus_person__zoom_out_0.35,bus_person,zoom_out,0.35,framing,approach,True,0.828,0.05,True,,framing,too_small,,,0.02,0.03,3721.252,94.237,0.828,1.0,1.0,0.828,0.332,wrong_target
+bus_person__zoom_out_0.25,bus_person,zoom_out,0.25,framing,approach,True,0.833,0.07,False,framing,framing,too_small,approach,0.15,0.01,0.021,4661.476,92.504,0.833,1.0,1.0,0.833,0.166,wrong_target
+bus_person__zoom_out_0.15,bus_person,zoom_out,0.15,framing,approach,True,0.791,0.0,False,framing,framing,too_small,approach,0.15,0.004,0.012,5526.961,91.546,0.791,1.0,1.0,0.791,0.06,wrong_target
+bus_person__zoom_in_1.5,bus_person,zoom_in,1.5,framing,back_off,True,0.843,0.96,True,,framing,too_big,,,0.359,-0.001,461.06,93.578,0.843,1.0,1.0,0.843,0.697,passed_local
+bus_person__zoom_in_2.0,bus_person,zoom_in,2.0,framing,back_off,True,0.786,0.97,False,framing,framing,too_big,back_off,0.15,0.504,0.0,119.666,85.878,0.786,1.0,1.0,0.786,0.25,correct
+bus_person__zoom_in_3.0,bus_person,zoom_in,3.0,framing,back_off,True,0.68,0.96,False,sharpness framing,framing,too_big,back_off,0.15,0.756,-0.001,47.374,66.497,0.68,0.474,1.0,0.68,0.25,correct
+bus_person__zoom_in_4.0,bus_person,zoom_in,4.0,framing,back_off,True,0.383,0.89,False,sharpness visibility framing,sharpness,too_big,retake,0.0,1.0,0.0,8.002,60.042,0.383,0.08,1.0,0.383,0.25,wrong_move
+bus_person__shift_0.15,bus_person,shift,0.15,framing,rotate,True,0.879,0.97,True,,framing,off_center,,,0.16,0.149,2061.718,93.868,0.879,1.0,1.0,0.879,0.671,passed_local
+bus_person__shift_0.25,bus_person,shift,0.25,framing,rotate,True,0.875,0.98,False,framing,framing,off_center,rotate,-15.615,0.16,0.249,2254.798,93.839,0.875,1.0,1.0,0.875,0.402,correct
+bus_person__shift_0.35,bus_person,shift,0.35,framing,rotate,True,0.874,0.95,False,framing,framing,off_center,rotate,-22.029,0.16,0.349,2538.64,93.826,0.874,1.0,1.0,0.874,0.287,correct
+bus_person__shift_0.45,bus_person,shift,0.45,framing,rotate,True,0.855,0.98,False,framing,framing,off_center,rotate,-25.593,0.112,0.411,2683.516,86.019,0.855,1.0,1.0,0.855,0.243,correct
+bus_person__occlusion_0.2,bus_person,occlusion,0.2,visibility,orbit,True,0.859,0.81,True,,visibility,off_center,,,0.16,0.089,2743.94,100.572,0.859,1.0,1.0,0.859,1.0,passed_local
+bus_person__occlusion_0.35,bus_person,occlusion,0.35,visibility,orbit,True,0.865,0.65,True,,framing,off_center,,,0.16,0.089,2426.153,110.681,0.865,1.0,1.0,0.865,1.0,passed_local
+bus_person__occlusion_0.5,bus_person,occlusion,0.5,visibility,orbit,True,0.829,0.08,True,,framing,off_center,,,0.16,0.089,2075.982,118.105,0.829,1.0,1.0,0.829,1.0,wrong_target
+bus_person__occlusion_0.65,bus_person,occlusion,0.65,visibility,orbit,True,0.828,0.08,True,,framing,off_center,,,0.16,0.089,1711.244,123.075,0.828,1.0,1.0,0.828,1.0,wrong_target
+bus_person__occlusion_0.8,bus_person,occlusion,0.8,visibility,orbit,True,0.83,0.08,True,,framing,off_center,,,0.16,0.089,1333.416,126.984,0.83,1.0,1.0,0.83,1.0,wrong_target
+natural__robot_bottle_cut_off,robot_bottle_cut_off,natural,,framing,back_off,True,0.604,,False,framing,framing,too_big,back_off,0.15,,,,,,,,,,correct
+natural__robot_bottle_far,robot_bottle_far,natural,,framing,approach,True,0.862,,False,framing,framing,too_small,approach,0.15,,,,,,,,,,correct
