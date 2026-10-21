@@ -4,7 +4,7 @@
   <name>active_perception_interfaces</name>
   <version>0.0.0</version>
   <description>Custom interfaces for active perception</description>
-  <maintainer email="user@todo.todo">user</maintainer>
+  <maintainer email="dinesharunachalam116@gmail.com">bluegoose</maintainer>
   <license>Apache-2.0</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>

@@ -10,3 +10,4 @@ float32 bbox_x_min
 float32 bbox_y_min
 float32 bbox_x_max
 float32 bbox_y_max
+float32 detection_confidence

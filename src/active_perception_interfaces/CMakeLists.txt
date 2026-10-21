@@ -15,6 +15,7 @@ find_package(sensor_msgs REQUIRED)
 rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/HeuristicMetrics.msg"
   "srv/AnalyzeQuality.srv"
+  "srv/CorrectiveMove.srv"
   DEPENDENCIES std_msgs sensor_msgs
 )
 

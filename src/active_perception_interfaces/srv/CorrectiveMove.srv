@@ -1,0 +1,9 @@
+# action: 'orbit' | 'rotate' | 'translate'
+# value: degrees for orbit/rotate (+ = CCW), metres for translate (+ = forward)
+# radius: orbit only, distance to the target (0 = orbit_radius)
+string action
+float32 value
+float32 radius
+---
+bool success
+string message
