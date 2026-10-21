@@ -19,7 +19,7 @@ setup(
     maintainer='bluegoose',
     maintainer_email='dinesharunachalam116@gmail.com',
     description='Active perception: pick the best camera angle with YOLO, heuristics and a VLM',
-    license='TODO: License declaration',
+    license='Apache-2.0',
     extras_require={
         'test': [
             'pytest',
@@ -34,6 +34,8 @@ setup(
             'coordinator = active_perception.coordinator_node:main',
             'interactive_trigger = active_perception.interactive_trigger:main',
             'motion = active_perception.motion_node:main',
+            'image_player = active_perception.image_player_node:main',
+            'sim_motion = active_perception.sim_motion_node:main',
         ],
     },
 )
